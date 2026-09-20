@@ -30,7 +30,7 @@ int runGui(int argc, char** argv) {
 
     // 全局样式：现代化简约浅色主题（扁平、圆角、统一强调色 #2563eb）
     app.setStyleSheet(QStringLiteral(R"(
-        QMainWindow, QDialog { background: #f8fafc; }
+        QMainWindow, QDialog { background: #f4f6f9; }
         QToolBar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 6px; spacing: 6px; }
         QToolBar QLabel { color: #475569; padding-right: 4px; }
         QToolButton { border: none; border-radius: 6px; padding: 6px 12px; background: transparent; color: #334155; }
