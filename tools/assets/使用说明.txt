@@ -1,0 +1,29 @@
+MeetMind v1.0.0 — 端侧语音转写与智能会议纪要
+================================================
+
+一、开始使用
+  1. 双击「下载模型.bat」下载语音识别模型（约 466 MB，只需一次）。
+  2. 从开始菜单或桌面快捷方式启动 MeetMind；
+     或在安装目录用命令行运行 meetmind-cli.exe。
+  3. 全部处理在本机离线完成，不产生任何网络请求。
+
+二、GPU 加速
+  有 NVIDIA 显卡时自动启用 CUDA 加速（约 40 倍实时）；
+  无显卡或驱动不可用时自动回退 CPU，无需任何设置。
+  命令行加 --no-gpu 可强制使用 CPU。
+
+三、文件说明
+  MeetMind.exe / meetmind-cli.exe   图形界面 / 命令行
+  *.dll                            运行所需动态库（Qt、CUDA、whisper）
+  data\                            中文词典等数据
+  config\meetmind.json             默认配置示例
+  models\                          模型存放目录（下载模型.bat 会写入这里）
+
+四、命令行示例
+  meetmind-cli.exe 音频.wav -o 输出 --formats md,json,srt,txt
+  meetmind-cli.exe 音频.wav --realtime               # 实时（流式）转写
+  meetmind-cli.exe --list-engines                    # 查看识别后端状态
+
+五、许可与来源
+  本项目采用 MIT 许可，源码：https://github.com/Ray-Huan/MeetMind
+  依赖：whisper.cpp(MIT)、Qt6(LGPLv3)、CUDA(NVIDIA 专有)、jieba/zhconv(仅数据准备)。
