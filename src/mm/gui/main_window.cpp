@@ -191,8 +191,8 @@ MainWindow::MainWindow(Config config, QWidget* parent)
     setWindowTitle(QString::fromUtf8("MeetMind — 端侧语音转写与智能会议纪要"));
     setAcceptDrops(true);
     resize(1280, 820);
-    // 现代简约风：90% 不透明度（轻微半透明，保证文字清晰可读）
-    setWindowOpacity(0.9);
+    // 完全不透明（用户要求：去掉半透明效果，保证文字最清晰）
+    setWindowOpacity(1.0);
     buildUi();
     buildMenus();
     applyConfigToUi();
