@@ -18,6 +18,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QProgressBar>
+#include <QResizeEvent>
 #include <QSizePolicy>
 #include <QSplitter>
 #include <QStatusBar>
@@ -35,6 +36,7 @@
 #include "mm/common/string_utils.h"
 #include "mm/common/time_utils.h"
 #include "mm/storage/session_store.h"
+#include "particle_overlay.h"
 #include "realtime_panel.h"
 #include "session_worker.h"
 #include "settings_dialog.h"
@@ -189,13 +191,19 @@ MainWindow::MainWindow(Config config, QWidget* parent)
     setWindowTitle(QString::fromUtf8("MeetMind — 端侧语音转写与智能会议纪要"));
     setAcceptDrops(true);
     resize(1280, 820);
-    // 现代化简约风：窗口整体 70% 不透明度（半透明质感）
-    setWindowOpacity(0.7);
+    // 现代化简约风：窗口整体 30% 不透明度（强半透明质感）
+    setWindowOpacity(0.3);
     buildUi();
     buildMenus();
     applyConfigToUi();
     syncDeviceUi();
     refreshSessionList();
+
+    // 粒子特效覆盖层（二次元装饰）：铺满窗口、置顶、鼠标穿透
+    particles_ = new ParticleOverlay(this);
+    particles_->setGeometry(rect());
+    particles_->raise();
+    particles_->show();
 
     // 日志转发到界面
     Logger::instance().setSink([this](LogLevel level, const std::string& line) {
@@ -723,6 +731,11 @@ void MainWindow::dropEvent(QDropEvent* event) {
         event->acceptProposedAction();
         return;
     }
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event) {
+    QMainWindow::resizeEvent(event);
+    if (particles_) particles_->setGeometry(rect());
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {

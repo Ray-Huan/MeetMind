@@ -19,6 +19,7 @@ class QThread;
 
 namespace mm::gui {
 
+class ParticleOverlay;
 class PipelineWorker;
 class RealtimePanel;
 class TranscriptModel;
@@ -47,6 +48,7 @@ protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dropEvent(QDropEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void onOpenAudio();
@@ -95,6 +97,7 @@ private:
     QAction* actExport_ = nullptr;
     QAction* actSettings_ = nullptr;
     QComboBox* deviceBox_ = nullptr;   ///< 首页工具栏「推理设备」选择（GPU / CPU）
+    ParticleOverlay* particles_ = nullptr;  ///< 粒子特效覆盖层（二次元装饰）
 
     QThread* thread_ = nullptr;
     PipelineWorker* worker_ = nullptr;
