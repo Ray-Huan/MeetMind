@@ -8,6 +8,7 @@
 [![Deps](https://img.shields.io/badge/runtime%20deps-none-success)]()
 [![Tests](https://img.shields.io/badge/tests-158%20passed-brightgreen)]()
 [![GPU](https://img.shields.io/badge/GPU-CUDA%20(optional)-76b900)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 | 主界面（工具栏右侧可切换 GPU / CPU） | 实时转写（GPU 推理，逐句出稿） |
 | --- | --- |
@@ -278,7 +279,11 @@ MeetMind/
 
 ---
 
-## 9. 第三方依赖与许可
+## 9. 许可
+
+本项目自身代码采用 **MIT 许可**，详见 [LICENSE](LICENSE)。
+
+### 第三方依赖
 
 核心库 `mm_core` 不依赖任何第三方运行时；下列组件仅用于**可选的**推理后端、图形界面与数据准备。
 
