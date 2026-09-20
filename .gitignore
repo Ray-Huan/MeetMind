@@ -12,6 +12,7 @@
 # 运行产物
 /output*/
 /sessions/
+/dist/
 
 # 测试素材：根目录的真实会议录音来自素材站，有版权，不入库
 # （data/fixtures/meeting_zh.wav 为脚本生成的合成音频，保留）
