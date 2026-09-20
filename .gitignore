@@ -1,0 +1,25 @@
+# 构建产物
+/build/
+/build-whisper-cuda/
+/build-*/
+
+# whisper.cpp 源码与 GPU 运行时（体积大，可由脚本重新获取/生成）
+/third_party/
+
+# 模型权重（数百 MB）
+/models/
+
+# 运行产物
+/output*/
+/sessions/
+
+# 测试素材：根目录的真实会议录音来自素材站，有版权，不入库
+# （data/fixtures/meeting_zh.wav 为脚本生成的合成音频，保留）
+/*.wav
+
+# 本工作区元数据（非项目文件）
+/.workbuddy/
+
+# 临时文件
+*.tmp
+*.log

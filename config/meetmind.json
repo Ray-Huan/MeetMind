@@ -1,0 +1,40 @@
+{
+  "backend": "whisper",
+  "modelPath": "models/ggml-small.bin",
+  "language": "zh",
+  "threads": 0,
+  "useGpu": true,
+  "asrTemperatureInc": 0.2,
+
+  "enableDiarization": true,
+  "speakerMode": "auto",
+  "speakerCount": 0,
+  "diarMergeThreshold": 0.35,
+
+  "enableItn": true,
+  "enablePunctuation": true,
+  "enableT2s": true,
+
+  "transcriptionUnitMs": 29000,
+  "unitMergeGapMs": 2500,
+  "minSpeechMs": 200,
+  "minSilenceMs": 300,
+  "maxSegmentMs": 30000,
+  "vadPadMs": 200,
+
+  "enableSummarization": true,
+  "summaryRatio": 0.25,
+  "summaryMaxSentences": 12,
+  "maxKeywords": 12,
+  "maxActionItems": 30,
+
+  "outputDir": "output",
+  "exportMarkdown": true,
+  "exportJson": true,
+  "exportSrt": true,
+  "exportText": true,
+  "exportHtml": false,
+
+  "meetingDate": "",
+  "logLevel": "info"
+}
