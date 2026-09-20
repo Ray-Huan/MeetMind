@@ -278,4 +278,43 @@ MeetMind/
 
 ---
 
+## 9. 第三方依赖与许可
+
+核心库 `mm_core` 不依赖任何第三方运行时；下列组件仅用于**可选的**推理后端、图形界面与数据准备。
+
+| 组件 | 用途 | 是否必需 | 许可 |
+| --- | --- | --- | --- |
+| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | 端侧语音识别推理（可选后端） | 可选 | MIT（© 2023–2026 The ggml authors） |
+| OpenAI Whisper 的 ggml 模型权重（`models/ggml-*.bin`） | 语音识别模型 | 可选 | MIT |
+| [Qt 6](https://www.qt.io/) | 图形界面（`mm_gui`） | 可选 | LGPLv3（或商业许可） |
+| NVIDIA CUDA / cuBLAS 运行时 | GPU 推理 | 可选 | NVIDIA 专有许可（随 CUDA Toolkit 分发） |
+| [jieba](https://github.com/fxsjy/jieba) 词典 | 生成 `data/lexicon_zh.txt`（中文词表） | 否，可重新生成 | MIT |
+| [zhconv](https://github.com/gumblex/zhconv) | 生成 `data/t2s_zh.txt`（繁→简映射表） | 否，可重新生成 | GPLv2+（见下方说明） |
+
+**仓库内数据文件的来源**
+
+- `data/lexicon_zh.txt` —— 由 `tools/prepare_data.py` 从 jieba 的 `dict.txt` 提取裁剪而来（jieba 为 MIT）。
+  重新生成：`python tools/prepare_data.py`。
+- `data/t2s_zh.txt` —— 由 `tools/prepare_data.py --t2s` 生成。该脚本**不复制 zhconv 的任何数据文件**，
+  而是对 CJK 基本区与扩展 A 的每个码点调用 `zhconv.convert()`，只保留发生繁简变化的单字映射。
+  产出物是汉字繁简对应关系的**事实性映射表**，不含 zhconv 的代码或其内部数据结构，
+  按 GPL 对「程序输出」的通行解释，分发该映射表不构成对 zhconv 的再分发。
+  zhconv 采用 GPLv2+，仅作为**准备数据的工具**在开发期使用，不进入本项目的构建与运行依赖。
+  若对此仍有顾虑，可删除 `data/t2s_zh.txt` 并关闭配置项 `enableT2s`，不影响其它功能。
+- `data/fixtures/meeting_zh.wav` —— 由 `tools/gen_meeting_audio.py` 经 Windows SAPI 合成的测试音频，
+  不含任何第三方录音素材。
+
+**未纳入版本库的组件**
+
+whisper.cpp 源码、CUDA 版 `whisper.dll` 及其运行时（约 290 MB）、ggml 模型权重均不入库
+（体积大且随上游更新），分别通过 `tools/fetch-whisper.sh`、`tools/build-whisper-cuda.sh`
+与模型下载步骤获取，详见 §3.3。
+
+**Qt 许可提示**
+
+本项目以**动态链接**方式使用 Qt，未修改 Qt 源码；`tools/deploy.sh` 通过 `windeployqt`
+部署的 Qt 动态库为原样分发。若需静态链接或闭源分发，请自行评估 LGPLv3 的相应义务。
+
+---
+
 <sub>MeetMind v1.0.0 · C++17 · Qt 6 · CMake · 零第三方运行时依赖</sub>
