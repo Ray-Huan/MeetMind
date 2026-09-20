@@ -27,6 +27,43 @@ int runGui(int argc, char** argv) {
         font.setPointSize(9);
         app.setFont(font);
     }
+
+    // 全局样式：现代化简约浅色主题（扁平、圆角、统一强调色 #2563eb）
+    app.setStyleSheet(QStringLiteral(R"(
+        QMainWindow, QDialog { background: #f8fafc; }
+        QToolBar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 6px; spacing: 6px; }
+        QToolBar QLabel { color: #475569; padding-right: 4px; }
+        QToolButton { border: none; border-radius: 6px; padding: 6px 12px; background: transparent; color: #334155; }
+        QToolButton:hover { background: #f1f5f9; }
+        QToolButton:pressed { background: #e2e8f0; }
+        QTabWidget::pane { border: none; }
+        QTabBar::tab { background: transparent; padding: 8px 20px; margin-right: 2px; color: #64748b; border-bottom: 2px solid transparent; }
+        QTabBar::tab:selected { color: #2563eb; border-bottom: 2px solid #2563eb; }
+        QTabBar::tab:hover:!selected { color: #1e293b; }
+        QPushButton { background: #2563eb; color: #ffffff; border: none; border-radius: 6px; padding: 7px 16px; }
+        QPushButton:hover { background: #1d4ed8; }
+        QPushButton:pressed { background: #1e40af; }
+        QPushButton:disabled { background: #cbd5e1; color: #94a3b8; }
+        QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; }
+        QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #2563eb; }
+        QComboBox::drop-down { border: none; width: 22px; }
+        QListWidget, QTableView, QTreeView { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; }
+        QTextBrowser, QPlainTextEdit, QTextEdit { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; }
+        QProgressBar { border: none; background: #e2e8f0; border-radius: 5px; text-align: center; color: #334155; }
+        QProgressBar::chunk { background: #2563eb; border-radius: 5px; }
+        QCheckBox, QRadioButton { spacing: 6px; }
+        QGroupBox { border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 12px; }
+        QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; color: #475569; }
+        QScrollBar:vertical { background: transparent; width: 10px; }
+        QScrollBar::handle:vertical { background: #cbd5e1; border-radius: 5px; min-height: 24px; }
+        QScrollBar:horizontal { background: transparent; height: 10px; }
+        QScrollBar::handle:horizontal { background: #cbd5e1; border-radius: 5px; min-width: 24px; }
+        QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
+        QSplitter::handle { background: #e2e8f0; }
+        QStatusBar { background: #ffffff; border-top: 1px solid #e2e8f0; color: #64748b; }
+        QHeaderView::section { background: #f1f5f9; border: none; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; color: #475569; }
+    )"));
+
     QCoreApplication::setApplicationName(QStringLiteral("MeetMind"));
     QCoreApplication::setApplicationVersion(QString::fromUtf8(MEETMIND_VERSION));
     QCoreApplication::setOrganizationName(QStringLiteral("MeetMind"));
