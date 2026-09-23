@@ -31,6 +31,11 @@ public:
     static Result<std::string> render(const PipelineResult& result, ExportFormat format,
                                       const std::vector<std::string>* plannedFiles = nullptr);
 
+    /// 渲染「人工审核网页」（单文件 HTML，内嵌转写数据 + 引用音频文件名）。
+    /// 用于处理完成后一键打开浏览器复核/修改，见 tools/gen_review_page.py（同源模板）。
+    static Result<std::string> renderReviewHtml(const PipelineResult& result,
+                                                const std::string& audioFileName);
+
     /// 计算将要写出的文件路径（不落盘）。
     static std::vector<std::string> planPaths(const PipelineResult& result, const Config& config,
                                               const ExportOptions& options);

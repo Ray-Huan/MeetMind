@@ -1,5 +1,7 @@
 #include "main_window.h"
 
+#include <filesystem>
+
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
@@ -8,6 +10,7 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -321,6 +324,9 @@ void MainWindow::buildMenus() {
     actExport_ = fileMenu->addAction(QString::fromUtf8("导出结果…"), this,
                                      &MainWindow::onExport);
     actExport_->setEnabled(false);
+    actReview_ = fileMenu->addAction(QString::fromUtf8("打开审核网页"), this,
+                                     &MainWindow::onOpenReview);
+    actReview_->setEnabled(false);
     fileMenu->addSeparator();
     QAction* actOpenDir = fileMenu->addAction(QString::fromUtf8("打开导出目录"));
     connect(actOpenDir, &QAction::triggered, this, [this]() {
@@ -404,6 +410,7 @@ void MainWindow::setBusy(bool busy) {
     actSettings_->setEnabled(!busy);
     actCancel_->setEnabled(busy);
     actExport_->setEnabled(!busy && result_ != nullptr);
+    actReview_->setEnabled(!busy && result_ != nullptr);
 }
 
 void MainWindow::appendLog(const QString& text) {
@@ -654,6 +661,56 @@ void MainWindow::onSessionActivated() {
     minutes_->setHtml(html);
     tabs_->setCurrentIndex(1);
     statusLabel_->setText(QString::fromUtf8("已载入历史会话 %1").arg(id));
+}
+
+void MainWindow::onOpenReview() {
+    if (!result_) return;
+
+    // 输出目录：优先配置的导出目录，否则音频同目录
+    std::string dir = config_.outputDir;
+    if (dir.empty() && !result_->inputPath.empty()) {
+        dir = pathutil::parentPath(result_->inputPath);
+    }
+    if (dir.empty()) dir = ".";
+
+    // 音频文件名：复制到输出目录，保证网页与音频同目录可播放
+    QString audioName;
+    if (!result_->inputPath.empty()) {
+        audioName = QFileInfo(qs(result_->inputPath)).fileName();
+        const QString dst = qs(pathutil::join(dir, audioName.toStdString()));
+        if (!QFileInfo::exists(dst)) {
+            QFile::copy(qs(result_->inputPath), dst);
+        }
+    }
+
+    // 生成审核网页
+    Result<std::string> html =
+        pipeline::Exporter::renderReviewHtml(*result_, audioName.toStdString());
+    if (!html.ok()) {
+        QMessageBox::warning(this, QString::fromUtf8("生成失败"), qs(html.message()));
+        return;
+    }
+
+    // 写文件（临时文件 + 原子替换，避免中断产生半成品）
+    const std::string htmlPath =
+        pathutil::join(dir, pathutil::stem(result_->inputPath) + "_review.html");
+    const std::string tmpPath = htmlPath + ".tmp";
+    {
+        QFile f(qs(tmpPath));
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, QString::fromUtf8("写入失败"), qs(tmpPath));
+            return;
+        }
+        f.write(html.value().data(), static_cast<qint64>(html.value().size()));
+        f.close();
+    }
+    std::error_code ec;
+    std::filesystem::remove(htmlPath, ec);          // 先删旧文件（Windows rename 不覆盖）
+    std::filesystem::rename(tmpPath, htmlPath, ec);
+    if (ec) std::filesystem::remove(tmpPath, ec);
+
+    appendLog(QString::fromUtf8("[GUI] 已生成审核网页 %1").arg(qs(htmlPath)));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(qs(htmlPath)));
 }
 
 void MainWindow::onExport() {

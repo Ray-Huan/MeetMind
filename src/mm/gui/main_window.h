@@ -55,6 +55,7 @@ private slots:
     void onStartProcess();
     void onCancelProcess();
     void onExport();
+    void onOpenReview();
     void onSettings();
     void onAbout();
     void onWorkerProgress(int stageIndex, int stageCount, int percent, const QString& message);
@@ -95,6 +96,7 @@ private:
     QAction* actStart_ = nullptr;
     QAction* actCancel_ = nullptr;
     QAction* actExport_ = nullptr;
+    QAction* actReview_ = nullptr;   ///< 打开审核网页（处理完成后可用）
     QAction* actSettings_ = nullptr;
     QComboBox* deviceBox_ = nullptr;   ///< 首页工具栏「推理设备」选择（GPU / CPU）
     ParticleOverlay* particles_ = nullptr;  ///< 粒子特效覆盖层（二次元装饰）
