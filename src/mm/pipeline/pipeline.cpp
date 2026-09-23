@@ -10,6 +10,7 @@
 #include "mm/audio/segmenter.h"
 #include "mm/audio/vad.h"
 #include "mm/audio/wav_io.h"
+#include "mm/common/json.h"
 #include "mm/common/path_utils.h"
 #include "mm/common/logger.h"
 #include "mm/common/string_utils.h"
@@ -580,6 +581,132 @@ Result<PipelineResult> Pipeline::run(CancelToken* cancel, const ProgressCallback
     MM_LOG_INFO("pipeline") << "流水线完成: 总耗时 "
                             << timeutil::formatDuration(result.report.totalMs) << ", 整体 RTF "
                             << result.report.overallRealTimeFactor;
+    return result;
+}
+
+Result<PipelineResult> Pipeline::importReviewed(const std::string& reviewedJsonPath,
+                                               CancelToken* cancel,
+                                               const ProgressCallback& onProgress) {
+    const int64_t start = timeutil::steadyNowMs();
+    auto cancelled = [&]() { return cancel != nullptr && cancel->isCancelled(); };
+
+    Result<Json> parsed = Json::parseFile(reviewedJsonPath);
+    if (!parsed.ok()) return fail(parsed.code(), "读取审核结果失败: " + parsed.message());
+    const Json& j = parsed.value();
+
+    PipelineResult result;
+    result.inputPath = j.getString("inputPath", "");
+    result.title = j.getString("title", "");
+    result.meetingDate = j.getString("meetingDate", "");
+    result.quality.durationMs = j.get("quality").getInt64("durationMs", 0);
+
+    // 从审核结果回填 asr.segments（text/speakerId 已人工修改，可能已合并）
+    const Json& asr = j.get("asr");
+    const Json& segs = asr.get("segments");
+    result.asr.language = asr.getString("language", "zh");
+    result.asr.backend = "reviewed";
+    result.asr.segments.reserve(segs.size());
+    for (size_t i = 0; i < segs.size(); ++i) {
+        const Json& s = segs.at(i);
+        asr::AsrSegment seg;
+        seg.startMs = s.getInt64("startMs", 0);
+        seg.endMs = s.getInt64("endMs", 0);
+        seg.text = s.getString("text", "");
+        seg.speakerId = s.getInt("speakerId", 0);
+        result.asr.segments.push_back(std::move(seg));
+    }
+
+    // speakerLabels
+    const Json& labels = j.get("speakerLabels");
+    for (size_t i = 0; i < labels.size(); ++i) {
+        result.speakerLabels.push_back(labels.at(i).asString());
+    }
+
+    if (result.asr.segments.empty()) {
+        return fail(ErrorCode::InvalidArgument, "审核结果不含任何转写段落");
+    }
+    if (cancelled()) return fail(ErrorCode::Cancelled, "用户已取消");
+
+    // 句子切分
+    std::vector<nlp::SentenceSplitter::TimedText> timed;
+    timed.reserve(result.asr.segments.size());
+    for (const asr::AsrSegment& s : result.asr.segments) {
+        nlp::SentenceSplitter::TimedText t;
+        t.text = s.text;
+        t.startMs = s.startMs;
+        t.endMs = s.endMs;
+        t.speakerId = s.speakerId;
+        timed.push_back(std::move(t));
+    }
+    nlp::SentenceSplitOptions splitOpts;
+    splitOpts.maxSentenceChars = 60;
+    result.sentences = nlp::SentenceSplitter{splitOpts}.splitTimed(timed);
+
+    // 统计
+    nlp::Statistics& st = result.minutes.stats;
+    st.totalDurationMs = result.quality.durationMs;
+    st.segmentCount = static_cast<int>(result.asr.segments.size());
+    st.sentenceCount = static_cast<int>(result.sentences.size());
+    st.lowConfidenceSegments = 0;
+    st.speakerCount = static_cast<int>(result.speakerLabels.size());
+    st.speakerTalkMs.assign(std::max<size_t>(1, result.speakerLabels.size()), 0);
+    st.speakerCharCount.assign(std::max<size_t>(1, result.speakerLabels.size()), 0);
+    int64_t charTotal = 0;
+    int cjkTotal = 0;
+    for (const asr::AsrSegment& s : result.asr.segments) {
+        const std::u32string u = str::toUtf32(s.text);
+        int cjk = 0;
+        for (char32_t c : u) {
+            if (str::isCjk(c)) ++cjk;
+        }
+        charTotal += static_cast<int64_t>(u.size());
+        cjkTotal += cjk;
+        const int spk = std::max(0, s.speakerId);
+        if (static_cast<size_t>(spk) < st.speakerTalkMs.size()) {
+            st.speakerTalkMs[static_cast<size_t>(spk)] += s.durationMs();
+            st.speakerCharCount[static_cast<size_t>(spk)] += cjk;
+        }
+    }
+    st.totalCharacters = static_cast<int>(charTotal);
+    st.cjkCharacters = cjkTotal;
+
+    // 纪要（复用与完整流水线相同的组件与配置）
+    const nlp::Tokenizer& tk = ensureTokenizer();
+    nlp::MinutesOptions mo;
+    mo.title = config_.title;
+    mo.meetingDate = result.meetingDate;
+    mo.enableSummarization = config_.enableSummarization;
+    mo.summaryRatio = config_.summaryRatio;
+    mo.summaryMaxSentences = config_.summaryMaxSentences;
+    mo.maxKeywords = config_.maxKeywords;
+    mo.maxActionItems = config_.maxActionItems;
+
+    nlp::MinutesBuilder builder(tk, mo);
+    Result<nlp::Minutes> minutes =
+        builder.build(result.sentences, result.speakerLabels, st, /*summarizer=*/nullptr);
+    if (!minutes.ok()) return fail(minutes.code(), "纪要生成失败: " + minutes.message());
+    result.minutes = std::move(minutes.value());
+    result.title = result.minutes.title;
+
+    // 报告定稿
+    result.report.totalMs = timeutil::steadyNowMs() - start;
+    result.report.audioMs = result.quality.durationMs;
+
+    if (cancelled()) return fail(ErrorCode::Cancelled, "用户已取消");
+
+    // 导出
+    {
+        const int64_t exportStart = timeutil::steadyNowMs();
+        Result<std::vector<std::string>> files = Exporter::exportAll(result, config_);
+        if (!files.ok()) {
+            result.minutes.risks.push_back("导出失败：" + files.message());
+        } else {
+            result.exportedFiles = std::move(files.value());
+        }
+        result.report.exportMs = timeutil::steadyNowMs() - exportStart;
+    }
+
+    notify(onProgress, Stage::Done, stageCount(), 1.0, "审核结果已导入并重新生成");
     return result;
 }
 

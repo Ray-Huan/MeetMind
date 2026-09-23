@@ -30,6 +30,14 @@ public:
     Result<PipelineResult> run(CancelToken* cancel = nullptr,
                                const ProgressCallback& onProgress = nullptr);
 
+    /// 导入人工审核后的结果 JSON，重新生成句子/纪要并导出。
+    /// reviewedJson 由审核网页（tools/gen_review_page.py）导出，格式与原 result.json
+    /// 一致，仅 asr.segments 的 text/speakerId 与 speakerLabels 可能被修改。
+    /// 跳过解码/重采样/VAD/转写/说话人分离，直接走「句子切分 → 纪要 → 导出」。
+    Result<PipelineResult> importReviewed(const std::string& reviewedJsonPath,
+                                          CancelToken* cancel = nullptr,
+                                          const ProgressCallback& onProgress = nullptr);
+
     /// 阶段总数（用于进度显示）。
     static int stageCount();
 

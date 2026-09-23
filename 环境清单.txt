@@ -1,0 +1,69 @@
+MeetMind 环境清单
+==================
+端侧语音转写与智能会议纪要工具
+更新日期：2026-09-22
+
+
+一、必需环境（最小可构建核心库）
+--------------------------------
+- 操作系统        Windows 10 / 11 x64
+- CMake           大于等于 3.20（实测 4.0.1）
+- 构建生成器      Ninja（或用 mingw32-make 亦可）
+- 编译器          MinGW-w64 GCC 大于等于 11（实测 13.1.0，支持 C++17）
+
+说明：核心库 mm_core 零第三方运行时依赖（JSON / 分词 / FFT / MFCC / TextRank /
+MMR 均为自研），仅需 CMake + g++ 即可编出命令行工具与单元测试。
+
+
+二、可选：图形界面（GUI）
+--------------------------------
+- Qt 6            大于等于 6.2（实测 6.7.1）
+- Qt 模块         Widgets、Network、Multimedia（三个）
+- FFmpeg          Qt Multimedia 自带解码依赖（windeployqt 自动部署）
+
+说明：找不到 Qt6 时自动跳过 GUI；Multimedia 缺失时实时转写的麦克风来源自动隐藏。
+
+
+三、可选：语音识别（端侧 ASR）
+--------------------------------
+- whisper.cpp     源码（由 tools/fetch-whisper.sh 按需拉取）
+- ggml 模型       ggml-small.bin（约 466 MB，主用）/ ggml-base.bin（约 147 MB，备选）
+
+说明：没有 whisper.cpp 或模型时自动降级为「回放引擎」，功能可跑但不做真实转写。
+
+
+四、可选：GPU 加速（CUDA）
+--------------------------------
+- 显卡            NVIDIA GPU，sm_89（实测 RTX 4060 Laptop 8 GB）
+- CUDA Toolkit    12.3（nvcc）
+- 编译器          Visual Studio 2019（MSVC 14.29，GPU 版 whisper.dll 必须用 MSVC 编，
+                  nvcc 不接受 MinGW）
+- 运行时 DLL      cudart64_12.dll / cublas64_12.dll（不含 cublasLt，省 551 MB）
+
+说明：无显卡或未编入 CUDA 后端时静默回退 CPU，不影响运行；运行时默认即用 GPU，
+      可用 --no-gpu 或配置 "useGpu": false 强制 CPU。
+
+
+五、可选：数据准备（开发期，产物已内置）
+--------------------------------
+- Python          大于等于 3.8（仅跑 tools/prepare_data.py）
+- jieba           0.42.1（MIT 许可）
+- zhconv          1.4.3（GPLv2+，仅作生成工具，不进运行依赖）
+
+说明：中文词典 lexicon_zh.txt、繁简映射 t2s_zh.txt 已随仓库分发，
+      最终用户不需要 Python 或这些包。
+
+
+六、运行时依赖（最终用户机器，安装包 / 绿色包已自带）
+--------------------------------
+- Qt 运行库       Qt6Core / Gui / Widgets / Network / Multimedia / Svg / Pdf.dll + 插件目录
+- MSVC 运行库     MSVCP140 / VCRUNTIME140 / VCRUNTIME140_1 / VCOMP140
+- MinGW 运行库    libstdc++-6 / libgcc_s_seh-1 / libwinpthread-1
+- 语音引擎        whisper.dll + ggml / ggml-base / ggml-cpu / ggml-cuda
+- CUDA 运行库     cudart64_12 / cublas64_12
+
+
+一句话总结
+--------------------------------
+最终用户只需一台 Windows 电脑，双击 Setup.exe（或解压绿色包）+ 下载一次模型即可使用；
+开发者构建 GUI 需加 Qt6，做 GPU 加速再加 CUDA + MSVC，其余全部可选。

@@ -57,6 +57,7 @@ struct CliOptions {
     bool dryRun = false;
     bool showHelp = false;
     bool showVersion = false;
+    std::string importReviewJson;  ///< 审核网页导出的结果 JSON（跳过识别，直接重生成纪要）
     /// 命令行是否显式给出了 --gpu / --no-gpu。
     /// 未显式给出时应沿用配置文件里的 useGpu，而不是用默认值把它覆盖掉。
     bool gpuSet = false;
@@ -82,6 +83,10 @@ void printUsage() {
         "  -t, --title <标题>      会议标题（默认自动推导）\n"
         "  -d, --date <YYYY-MM-DD> 会议日期（用于待办截止时间推算，默认今天）\n"
         "      --formats <列表>    导出格式，逗号分隔：md,json,srt,txt,html\n"
+        "\n"
+        "人工审核:\n"
+        "      --import-review <json>  导入审核网页导出的结果 JSON，重新生成句子/纪要并导出\n"
+        "                              （配合 tools/gen_review_page.py 使用）\n"
         "\n"
         "识别引擎:\n"
         "      --backend <类型>    auto | whisper | replay | null（默认 auto）\n"
@@ -194,6 +199,8 @@ bool parseArgs(int argc, char** argv, CliOptions& opt, std::string& error) {
         } else if (arg == "--formats") {
             const std::string v = needValue(i, "--formats");
             opt.formats = mm::str::splitAny(mm::str::toLowerAscii(v), ",; ");
+        } else if (arg == "--import-review") {
+            opt.importReviewJson = needValue(i, "--import-review");
         } else if (arg == "--batch") {
             opt.batchDir = needValue(i, "--batch");
         } else if (arg == "--config") {
@@ -729,6 +736,31 @@ int runMain(int argc, char** argv) {
             std::cout << "提示: 配置文件中 useGpu=false，当前按 CPU 推理；"
                          "本构建其实含 CUDA 后端，改回 true 即可提速约 16 倍。\n";
         }
+    }
+
+    // 导入审核结果：跳过识别，直接重新生成句子/纪要并导出（与正常/批处理/实时互斥）
+    if (!opt.importReviewJson.empty()) {
+        if (!mm::pathutil::exists(opt.importReviewJson)) {
+            std::cerr << "审核结果文件不存在: " << opt.importReviewJson << "\n";
+            return kExitUsage;
+        }
+        mm::pipeline::Pipeline pipeline(merged);
+        Result<mm::pipeline::PipelineResult> result =
+            pipeline.importReviewed(opt.importReviewJson);
+        if (!result.ok()) {
+            std::cerr << "导入审核结果失败: " << result.message() << "\n";
+            return kExitRuntime;
+        }
+        const auto& r = result.value();
+        if (opt.printJson) {
+            std::cout << r.toJson().dump(2) << "\n";
+        } else {
+            std::cout << "审核结果已导入并重新生成 " << r.exportedFiles.size() << " 个文件:\n";
+            for (const std::string& f : r.exportedFiles) {
+                std::cout << "  " << f << "\n";
+            }
+        }
+        return kExitOk;
     }
 
     if (inputs.empty()) {
